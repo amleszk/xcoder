@@ -126,8 +126,8 @@ describe Xcode::Builder do
 
       let(:default_clean_parameters) do
         [ "xcodebuild", 
-          "-project \"#{configuration.target.project.path}\"", 
           "-sdk iphoneos",
+          "-project \"#{configuration.target.project.path}\"", 
           "-target \"#{configuration.target.name}\"", 
           "-configuration \"#{configuration.name}\"", 
           "OBJROOT=\"#{File.dirname(configuration.target.project.path)}/build/\"", 
@@ -156,10 +156,10 @@ describe Xcode::Builder do
       let(:default_build_parameters) do
         [ "xcodebuild",
           "-sdk iphoneos",
-          "-project \"#{scheme.project.path}\"",
+          "-project \"#{scheme.container.path}\"",
           "-scheme \"#{scheme.name}\"",
-          "OBJROOT=\"#{File.dirname(scheme.project.path)}/build/\"", 
-          "SYMROOT=\"#{File.dirname(scheme.project.path)}/build/\"" ]
+          "OBJROOT=\"#{File.dirname(scheme.container.path)}/build/\"", 
+          "SYMROOT=\"#{File.dirname(scheme.container.path)}/build/\"" ]
       end
 
       it "should build the project with the default parameters" do
@@ -173,11 +173,11 @@ describe Xcode::Builder do
 
       let(:default_clean_parameters) do
         [ "xcodebuild",
-          "-project \"#{scheme.project.path}\"",
           "-sdk iphoneos",
+          "-project \"#{scheme.container.path}\"",
           "-scheme \"#{scheme.name}\"",
-          "OBJROOT=\"#{File.dirname(scheme.project.path)}/build/\"", 
-          "SYMROOT=\"#{File.dirname(scheme.project.path)}/build/\"",
+          "OBJROOT=\"#{File.dirname(scheme.container.path)}/build/\"", 
+          "SYMROOT=\"#{File.dirname(scheme.container.path)}/build/\"",
           "clean" ]
       end
 
@@ -191,4 +191,46 @@ describe Xcode::Builder do
 
   end
   
+  context "when using a builder built from a workspace" do
+
+    let(:scheme) { Xcode.workspace('TestWorkspace').scheme('TestScheme') }
+    
+    let(:subject) { scheme.builder }
+
+    describe "#build" do
+      
+      let(:default_build_parameters) do
+        [ "xcodebuild",
+          "-sdk iphoneos",
+          "-workspace \"#{scheme.container.path}\"",
+          "-scheme \"#{scheme.name}\""]
+      end
+
+      it "should build the project with the default parameters" do
+        Xcode::Shell.should_receive(:execute).with(default_build_parameters)
+        subject.build
+      end
+      
+    end
+    
+    describe "#clean" do
+
+      let(:default_clean_parameters) do
+        [ "xcodebuild",
+          "-sdk iphoneos",
+          "-workspace \"#{scheme.container.path}\"",
+          "-scheme \"#{scheme.name}\"",
+          "clean" ]
+      end
+
+
+      it "should clean the project with the default parameter" do
+        Xcode::Shell.should_receive(:execute).with(default_clean_parameters)
+        subject.clean
+      end
+
+    end
+
+    
+  end
 end

@@ -34,4 +34,13 @@ describe Xcode::Workspace do
     p = w.project 'TestProject'
     p.name.should=="TestProject"
   end
+
+  it "should find workspace shared schemes" do 
+    w = Xcode.workspace "TestWorkspace"
+    w.schemes.size.should == 1
+    scheme = w.schemes[0]
+    scheme.name == "TestScheme"
+    scheme.workspace?.should be_true
+  end
+
 end

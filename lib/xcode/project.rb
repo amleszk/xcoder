@@ -64,7 +64,7 @@ module Xcode
       @registry = parse_pbxproj
       @project = Xcode::Resource.new @registry.root, @registry
       
-      @schemes = parse_schemes
+      @schemes = Scheme.all_from_path(self,@path)
     end
     
     
@@ -340,25 +340,7 @@ module Xcode
     end
     
     private
-  
-    #
-    # Parse all the scheme files that can be found within the project. Schemes
-    # can be defined as `shared` schemes and then `user` specific schemes. Parsing
-    # the schemes will load the shared ones and then the current acting user's
-    # schemes.
-    # 
-    # @return [Array<Scheme>] the shared schemes and user specific schemes found
-    #   within the projet at the path defined for schemes.
-    # 
-    def parse_schemes
-      shared_schemes = Dir["#{@path}/xcshareddata/xcschemes/*.xcscheme"]
-      user_specific_schemes = Dir["#{@path}/xcuserdata/#{ENV['USER']}.xcuserdatad/xcschemes/*.xcscheme"]
-      
-      (shared_schemes + user_specific_schemes).map do |scheme|
-        Xcode::Scheme.new(self, scheme)
-      end
-    end
-  
+    
     #
     # Using the sytem tool plutil, the specified project file is parsed and 
     # converted to JSON, which is then converted to a hash object. This content 

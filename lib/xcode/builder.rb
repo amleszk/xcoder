@@ -76,31 +76,7 @@ module Xcode
       yield(testflight) if block_given?
       testflight.upload(ipa_path, dsym_zip_path)
     end
-    
-    def clean
-      cmd = []
-      cmd << "xcodebuild"
-      cmd << "-project \"#{@target.project.path}\""
-      cmd << "-sdk #{@sdk}" unless @sdk.nil?
-      
-      cmd << "-scheme \"#{@scheme.name}\"" unless @scheme.nil?
-      cmd << "-target \"#{@target.name}\"" if @scheme.nil?
-      cmd << "-configuration \"#{@config.name}\"" if @scheme.nil?
-      
-      cmd << "OBJROOT=\"#{@build_path}\""
-      cmd << "SYMROOT=\"#{@build_path}\""
-      cmd << "clean"
-      Xcode::Shell.execute(cmd)
-      
-      @built = false
-      @packaged = false
-      # FIXME: Totally not safe
-      # cmd = []
-      # cmd << "rm -Rf #{build_path}"
-      # Xcode::Shell.execute(cmd)
-      self
-    end    
-    
+        
     def sign
       cmd = []
       cmd << "codesign"
@@ -188,6 +164,13 @@ module Xcode
       "#{product_version_basename}.dSYM.zip"
     end
     
+    def clean
+      Xcode::Shell.execute(build_command({},'clean'))
+      @built = false
+      @packaged = false
+      self
+    end    
+    
     
     private 
     
@@ -214,23 +197,33 @@ module Xcode
       p
     end
     
-    def build_command(options = {})
+    def build_command(options = {}, xcodebuild_cmd=nil)
       options = {:sdk => @sdk}.merge options
       profile = install_profile
       cmd = []
       cmd << "xcodebuild"
       cmd << "-sdk #{options[:sdk]}" unless options[:sdk].nil?
-      cmd << "-project \"#{@target.project.path}\""
+      if(@scheme && @scheme.workspace?)
+        cmd << "-workspace \"#{@scheme.container.path}\""
+      else
+        cmd << "-project \"#{@target.project.path}\""      
+      end
       
-      cmd << "-scheme \"#{@scheme.name}\"" unless @scheme.nil?
-      cmd << "-target \"#{@target.name}\"" if @scheme.nil?
-      cmd << "-configuration \"#{@config.name}\"" if @scheme.nil?
+      if(@scheme.nil?)
+        cmd << "-target \"#{@target.name}\""
+        cmd << "-configuration \"#{@config.name}\""
+      else
+        cmd << "-scheme \"#{@scheme.name}\""
+      end      
       
       cmd << "OTHER_CODE_SIGN_FLAGS='--keychain #{@keychain.path}'" unless @keychain.nil?
       cmd << "CODE_SIGN_IDENTITY=\"#{@identity}\"" unless @identity.nil?
-      cmd << "OBJROOT=\"#{@objroot}\""
-      cmd << "SYMROOT=\"#{@symroot}\""
+      unless(@scheme && @scheme.workspace?)
+        cmd << "OBJROOT=\"#{@objroot}\""
+        cmd << "SYMROOT=\"#{@symroot}\""
+      end
       cmd << "PROVISIONING_PROFILE=#{profile.uuid}" unless profile.nil?
+      cmd << xcodebuild_cmd unless xcodebuild_cmd.nil?
       cmd
     end
     
